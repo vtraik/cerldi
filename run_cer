@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ -e "results" ]; then
+  rm "results"
+fi
+
+swipl -s cerldi.prolog -g "er('sample/log.input','results','sample/definitions.prolog',10,5), halt."
+

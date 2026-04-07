@@ -1,0 +1,30 @@
+event(login, 1).
+event(purchase, 2).
+event(crash,2).
+event(downtime_start,2).
+event(logout, 2).
+event(downtime_end,4).
+event(login, 5).
+event(purchase, 6).
+event(purchase, 7).
+event(crash,7).
+event(downtime_start,7).
+event(logout, 7).
+event(downtime_end,10).
+event(login, 10).
+event(purchase, 11).
+event(logout, 13).
+event(login, 14).
+event(purchase, 15).
+event(logout, 17).
+event(login, 18).
+event(purchase, 19).
+event(crash,19).
+event(purchase, 20).
+event(logout, 22).
+event(purchase, 22).
+event(login, 23).
+event(crash,24).
+event(downtime_start,24).
+event(logout, 24).
+event(downtime_end,30).
