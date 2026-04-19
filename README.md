@@ -1,64 +1,80 @@
-# Cerldi
-Το Cerldi είναι ένα σύστημα για την αναπαράσταση και επεξεργασία στιγμιαίων και διαρκών χρονικών φαινομένων.
+# Complex Event Recognition (CER) System
+This system is a **Complex Event Processing/Recognition (CEP/R) engine** implemented in Prolog. It processes real-time data streams to detect complex events based on predefined logic rules.
 
-Τα χρονικά φαινόμενα μπορεί να είναι:
+---
 
-- γεγονότα (events, στιγμιαία)
-- καταστάσεις (states, διαρκείς)
+## 1. Grammar
+The system follows the $\mathcal{L}_{\mathcal{DI}}$ language grammar. Formulas are divided into instantaneous events ($\phi^{\bullet}$) and state events with duration ($\phi^{-}$):
 
-Δεδομένης μιας εισερχόμενης ροής από χρονικά φαινόμενα, το Cerldi θα παράγει τις χρονικές στιγμές ή  
-τα χρονικά διαστήματα κατά τα οποία ισχύουν τα χρονικά φαινόμενα που ορίζονται από τον χρήστη.
+```ebnf
+ϕ   ::= ϕ• | ϕ-
 
-## Run
-- run: run_cer script -> output: results
-- definitions/input folder: sample
+ϕ•  ::= Pe                                 /* Instantaneous Event */
+      | ϕ• and [[tnot]] ϕ•                 /* Conjunction */
+      | ϕ• or ϕ•                           /* Disjunction */
+      | [start,end] ϕ-                     /* Start/End of a state */
 
-## cerldi
-Χρησιμοποιούνται οι μεταβλητές:
+ϕ-  ::= Ps                                 /* State Event */
+      | ϕ• ~> ϕ•                           /* Maximal  Intervals Operator */
+      | ϕ- [union,intersection,minus] ϕ-   /* Temporal Set Operation  */
+```
+*Note: Double Square brackets `[[]]` in the grammar denote optional elements while square brackets `[]` choices between operators.*
 
-- Tcrit: αρχή επόμενου διαστήματος
-- Tstart: αρχή τωρινού διαστήματος
-- Tprev : προηγούμενο 
-- WindowI: ακέραιοι στο [Tstart,Tcrit] (χρειάζεται στο tnot)
+---
 
-## levels
-Βρίσκει το level ενός predicate, με level = 0 να είναι τα input events. Ένα 2ο base case
-είναι ένα predicate που έχει οριστεί πριν, μέσα σε έναν ορισμό.
+## 2. Semantics
+The system assumes discrete time $T = \mathbb{N}$. Interpretation functions determine if a formula is true at a specific time point ($t$) or over an interval $[ts, te]$.
 
-## temporal_operations
-- intersection:
-Παίρνει το μαξ από τις 2 αρχές και το μιν από τα 2 τέλη. Το διάστημα που προκύπτει, αν είναι
-έγκυρο (L1 < L2) είναι η τομή των 2 διαστημάτων (ανάλογα ποιο προηγείται προχωράει, στην αναδρομική
-κλήση το διάστημα που πρέπει και το άλλο παραμένει), αλλιώς τα διαστήματα δεν είναι πλεχτά και
-προχωράει η αναδρομή ανάλογα με τη διάταξή τους. Προφανώς υπάρχει και η περίπτωση όπου
-τα 2 διαστήματα ταυτίζονται και άρα η τομή είναι όλο το διάστημα.
+### Instantaneous Semantics ($\mathcal{M}, t \models \phi^{\bullet}$)
+* **tnot**:   Standard logical negation at time $t$.
+* **and/or**: Standard logical conjunction and disjunction at time $t$.
+* **start($\phi^{-}$)**: True at time $t$ if a state $\phi^{-}$ begins at that moment.
+* **end($\phi^{-}$)**:   True at time $t$ if a state $\phi^{-}$ terminates at that moment.
 
-- difference:
-Παίρνει όλες τις περιπτώσεις που μπορούν 2 διαφορετικά διαστήματα να βρίσκονται, δηλαδή
-είτε πλεχτά είτε το ένα πριν από το άλλο είτε να είναι ακριβώς ίσα και επιλέγει τη διαφορά
-όπως αυτή ορίζεται σε κάθε περίπτωση.
+### State Semantics ($\mathcal{M}, [ts, te] \models \phi^{-}$)
+* **Maximal Intervals Operator ($\phi \sim> \psi$)**: This holds for maximal, non-overlapping intervals. It starts at the earliest time $ts$ where $\phi$ is true and ends at the earliest time $te$ where $\psi \wedge \neg\phi$ becomes true.
+* **Union ($\sqcup$)**: Merges overlapping or adjacent intervals where either $\phi$ or $\psi$ is true to form a single maximal interval.
+* **Intersection ($\sqcap$)**: Holds only during the specific intervals where both $\phi$ and $\psi$ are simultaneously true.
+* **Difference ($\setminus$)**: Holds during the maximal sub-intervals where $\phi$ is true but $\psi$ is false.
 
-## transformations
-Κάθε formula έχει ένα id για να μπορεί να γίνει η αντιστοίχιση formula <-> retained value.
-Στις περιπτώσεις που πρέπει επιστρέφεται μέσω findall μια λίστα από διαστήματα ή μια λίστα
-από χρονικές στιγμές πάνω σε ένα Ι ή S ενός transformed τύπου (Ltr,Rtr) χρησιμοποιείται το
-κατηγόρημα list_to_ord_set για να αφαιρεθούν τυχόν διπλότυπα από την λίστα. Το transformation
-δεν πηγαίνει μέχρι τη βάση της ιεραρχίας (input events) αλλά σταματά σε predicates που έχουν
-ορισθεί προηγουμένως στο definitions file.
+---
 
-retained_{intrvl,start}: Από την λίστα τον αποτελεσμάτων κρατάνε είτε τα intervals είτε τα
-start times που κάνουν overlap το Tcrit.
+## 3. Sliding Window Mechanism
+To manage finite memory, the system processes the input stream using a sliding window.
 
+* **Parameters**: The user defines a window size $\omega$ and a `step` (the increment between queries).
+* **Window Constraints**: The window size must be greater than the step ($\omega > step$).
+* **Logic**: 
+    * At each query time $t_q$, the engine loads events in the range $(t_q - \omega, t_q]$.
+    * Events older than $t_q - \omega$ are purged from the knowledge base.
+* **Continuity**: The system stores "open" intervals (states that have started but not yet ended) to ensure correctness when a state spans across multiple windows.
 
-## Sliding Window
-- set_formulas (union/intersection/minus):
-Σε κάθε παράθυρο κάθε τύπος ενοποιείται με τις λύσεις του προηγούμενου παραθύρου που 
-εμπεριέχονται και στο τρέχον παράθυρο (διαστήματα [x,T], T in [Tstart,Tcrit]). Το 
-αποτέλεσμα φυλάσσεται για το επόμενο παράθυρο. Μετά από κάθε query, σβήνονται τα I
-(διαστήματα) του προηγούμενου παραθύρου (retained_intrvl(_,_,Tprev)).
+---
 
-- maximal_intervals:
-Κρατιούνται οι αρχές του αποτελέσματος που περιέχονται στο επόμενο διάστημα (S=<Tcrit<E).
-Οι προηγούμενες φυλαγμένες γίνονται merge με τις τωρινές αρχές και υπολογίζεται το maximal
-intervals. Μετά από κάθε query σβήνονται οι αρχές του προηγούμενου παραθύρου
-(retained_start(_,_,Tprev)).
+## 4. Usage Instructions
+
+### File Formats
+1.  **Definitions (`definitions.ldi`)**: Contains `input_event_declaration`, `event_def`, and `state_def`.
+2.  **Input (`stream.input`)**: A list of `event(EventName, Time).` facts sorted by time.
+
+### Execution
+The system performs a **topological sort** on your definitions to determine the correct processing order (e.g., higher-level events are processed after the lower-level events they depend on).
+
+### Run/Dependencies
+##### Dependencies
+SWI-Prolog
+##### Run
+```bash
+./run_cerldi
+```
+Or you can run it yourself with:
+```bash
+swipl -s cerldi.prolog -g "er(input_file,output_file,definitions_file,Window,Step), halt."
+```
+
+### Output
+The system writes detected events to an output file in the following formats:
+* `event(name(args), time).` 
+* `state(name(args), [start, end]).`  
+
+*Note: `inf` is used for states that have not yet ended.*
