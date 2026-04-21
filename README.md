@@ -58,7 +58,8 @@ To manage finite memory, the system processes the input stream using a sliding w
 2.  **Input (`stream.input`)**: A list of `event(EventName, Time).` facts sorted by time.
 
 ### Execution
-The system performs a **topological sort** on your definitions to determine the correct processing order (e.g., higher-level events are processed after the lower-level events they depend on).
+The system performs a **topological sort** on your definitions to determine the correct processing order  
+(e.g. higher-level events are processed after the lower-level events they depend on).
 
 ### Run/Dependencies
 ##### Dependencies
